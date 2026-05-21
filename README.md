@@ -23,6 +23,9 @@ El servidor queda disponible en: `http://127.0.0.1:8000`
 Documentación automática (Swagger UI): `http://127.0.0.1:8000/docs`  
 Documentación alternativa (ReDoc): `http://127.0.0.1:8000/redoc`
 ## (Los links de arriba deberian de seguir funcionando)
+## Siempre usar el segundo link que es el que abre la página web
+## Cada vez que cierran y abren el programa tienen que poner uvicorn main:app --reload en la terminal para que funcione la página
+
 ---
 
 ## Ejecutar tests
