@@ -1,11 +1,5 @@
-# API Gestión de Envíos — Equipo 4
-**Materia:** Testing de Aplicaciones (UADE)  
-**Developer:** Mayra Gutierrez  
-**Docente:** Ariel A. Loffreda  
 
----
-
-## Instalación
+## Cosas que instalar para que corra el programa
 
 ```bash
 # 1. Crear entorno virtual (recomendado)
@@ -28,7 +22,7 @@ uvicorn main:app --reload
 El servidor queda disponible en: `http://127.0.0.1:8000`  
 Documentación automática (Swagger UI): `http://127.0.0.1:8000/docs`  
 Documentación alternativa (ReDoc): `http://127.0.0.1:8000/redoc`
-
+(Los links de arriba deberian de seguir funcionando)
 ---
 
 ## Ejecutar tests
