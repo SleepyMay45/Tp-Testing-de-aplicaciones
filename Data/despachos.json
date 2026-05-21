@@ -1,0 +1,26 @@
+[
+  {
+    "id": "d001",
+    "remitente": "Juan Perez",
+    "destinatario": "Maria Lopez",
+    "direccion_origen": "Av. Corrientes 1234, Buenos Aires",
+    "direccion_destino": "San Martin 456, Córdoba",
+    "peso_kg": 2.5,
+    "estado": "en_camino",
+    "fecha_creacion": "2026-05-10T09:00:00",
+    "tarifa": 850.0,
+    "notas": "Fragil"
+  },
+  {
+    "id": "d002",
+    "remitente": "Carlos Ruiz",
+    "destinatario": "Ana Torres",
+    "direccion_origen": "Belgrano 789, Rosario",
+    "direccion_destino": "Mitre 321, Mendoza",
+    "peso_kg": 10.0,
+    "estado": "pendiente",
+    "fecha_creacion": "2026-05-12T14:30:00",
+    "tarifa": 2100.0,
+    "notas": ""
+  }
+]

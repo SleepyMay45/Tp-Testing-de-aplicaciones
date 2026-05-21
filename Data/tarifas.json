@@ -1,0 +1,30 @@
+[
+  {
+    "id": "t001",
+    "descripcion": "Hasta 1 kg",
+    "peso_min_kg": 0.0,
+    "peso_max_kg": 1.0,
+    "precio_base": 350.0
+  },
+  {
+    "id": "t002",
+    "descripcion": "De 1 a 5 kg",
+    "peso_min_kg": 1.0,
+    "peso_max_kg": 5.0,
+    "precio_base": 700.0
+  },
+  {
+    "id": "t003",
+    "descripcion": "De 5 a 10 kg",
+    "peso_min_kg": 5.0,
+    "peso_max_kg": 10.0,
+    "precio_base": 1400.0
+  },
+  {
+    "id": "t004",
+    "descripcion": "Más de 10 kg",
+    "peso_min_kg": 10.0,
+    "peso_max_kg": 9999.0,
+    "precio_base": 2500.0
+  }
+]
