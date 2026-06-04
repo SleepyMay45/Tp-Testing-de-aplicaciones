@@ -51,7 +51,6 @@ proyecto/
     └── test_servicios.py    # Tests unitarios y de integración
 ```
 
----
 
 ## Endpoints disponibles
 
@@ -68,7 +67,6 @@ proyecto/
 | POST | `/quejas` | Registra queja o devolución |
 | GET | `/quejas` | Lista todas las quejas |
 
----
 
 ## Usuarios precargados
 
@@ -77,6 +75,17 @@ proyecto/
 | admin@envios.com | admin123 | administrador |
 | operador1@envios.com | oper123 | operador |
 | operador2@envios.com | oper456 | operador |
+
+## Bugs intencionales (para el equipo de testing)
+
+Estos bugs fueron dejados a propósito para ser detectados durante el Sprint 2. Cada uno tiene su caso de prueba asociado en el informe de QA.
+
+| ID | Caso de Prueba | Endpoint | Descripción del defecto |
+|----|---------------|----------|-------------------------|
+| BUG-01 | CP-01 | `GET /getTarifa` | Acepta `peso_kg` negativo o cero y devuelve una tarifa en lugar de error 400 |
+| BUG-02 | CP-02 | `POST /despachos` | Permite crear un despacho con `direccion_destino` vacía o con solo espacios |
+| BUG-03 | CP-03 | `GET /despachos/{id}` | Si el ID no existe, el servidor entra en bucle infinito y no responde (falta el 404) |
+| BUG-04 | CP-04 | `POST /notificaciones/llegada/{id}` | Si el servicio de alertas falla, la excepción no controlada cierra el servidor Uvicorn |
 
 
 ## Logs
