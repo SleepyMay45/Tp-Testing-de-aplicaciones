@@ -63,8 +63,8 @@ proyecto/
 | GET | `/despachos/{id}` | Obtiene un despacho por ID |
 | POST | `/despachos` | Crea un nuevo despacho |
 | PATCH | `/despachos/{id}/estado` | Actualiza estado del despacho |
-| GET | `/getTarifa?peso_kg=X` | ⭐ Calcula tarifa según peso (endpoint nuevo) |
-| GET | `/validarDireccion?direccion=X` | ⭐ Valida formato de dirección (endpoint nuevo) |
+| GET | `/getTarifa?peso_kg=X` |  Calcula tarifa según peso (endpoint nuevo) |
+| GET | `/validarDireccion?direccion=X` |  Valida formato de dirección (endpoint nuevo) |
 | POST | `/quejas` | Registra queja o devolución |
 | GET | `/quejas` | Lista todas las quejas |
 
@@ -78,16 +78,6 @@ proyecto/
 | operador1@envios.com | oper123 | operador |
 | operador2@envios.com | oper456 | operador |
 
----
-
-## Bugs intencionales (para el equipo de testing)
-
-| ID | Endpoint | Descripción |
-|----|----------|-------------|
-| BUG-01 | `GET /getTarifa` | Acepta `peso_kg` negativo o cero sin retornar error |
-| BUG-02 | `POST /despachos` | Permite `direccion_destino` vacía o con solo espacios |
-
----
 
 ## Logs
 
