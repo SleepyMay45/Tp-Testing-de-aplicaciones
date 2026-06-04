@@ -1,0 +1,26 @@
+[
+  {
+    "id": "u001",
+    "nombre": "Admin Principal",
+    "email": "admin@envios.com",
+    "password": "admin123",
+    "rol": "administrador",
+    "activo": true
+  },
+  {
+    "id": "u002",
+    "nombre": "Operador Uno",
+    "email": "operador1@envios.com",
+    "password": "oper123",
+    "rol": "operador",
+    "activo": true
+  },
+  {
+    "id": "u003",
+    "nombre": "Operador Dos",
+    "email": "operador2@envios.com",
+    "password": "oper456",
+    "rol": "operador",
+    "activo": true
+  }
+]
