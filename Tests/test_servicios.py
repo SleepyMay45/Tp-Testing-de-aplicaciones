@@ -81,7 +81,7 @@ class TestRegistro:
         assert resp.status_code == 400
 
 
-# ─── Tests de getTarifa ────────────────────────────────────────────────────────
+# ─── Tests de getTarifa (BUG-01 corregido) ────────────────────────────────────
 
 class TestGetTarifa:
     def test_tarifa_peso_bajo(self):
@@ -103,21 +103,14 @@ class TestGetTarifa:
         assert resp.json()["tarifa"] == 2500.0
 
     def test_tarifa_peso_negativo(self):
-        """
-        Peso negativo debería retornar 400, pero actualmente retorna 200.
-        Este test FALLARÁ, evidenciando el BUG-01.
-        """
+        """[BUG-01 corregido] Peso negativo debe retornar 400."""
         resp = client.get("/getTarifa?peso_kg=-5")
-        # Comportamiento ESPERADO (correcto):
-        assert resp.status_code == 400  # Fallará con el bug actual
+        assert resp.status_code == 400
 
     def test_tarifa_peso_cero(self):
-        """
-        Peso cero debería retornar 400, pero actualmente retorna 200.
-        Este test FALLARÁ, evidenciando el BUG-01.
-        """
+        """[BUG-01 corregido] Peso cero debe retornar 400."""
         resp = client.get("/getTarifa?peso_kg=0")
-        assert resp.status_code == 400  # Fallará con el bug actual
+        assert resp.status_code == 400
 
 
 # ─── Tests de validarDireccion ─────────────────────────────────────────────────
@@ -147,7 +140,7 @@ class TestValidarDireccion:
         assert resp.json()["valida"] is False
 
 
-# ─── Tests de despachos ────────────────────────────────────────────────────────
+# ─── Tests de despachos (BUG-02 y BUG-03 corregidos) ─────────────────────────
 
 class TestDespachos:
     def test_listar_despachos(self):
@@ -170,10 +163,7 @@ class TestDespachos:
         assert "despacho" in resp.json()
 
     def test_crear_despacho_destino_vacio(self):
-        """
-        Despacho con direccion_destino vacía debería retornar 400.
-        Este test FALLARÁ, evidenciando el BUG-02.
-        """
+        """[BUG-02 corregido] Despacho con direccion_destino vacía debe retornar 400."""
         resp = client.post("/despachos", json={
             "remitente": "Test",
             "destinatario": "Test",
@@ -181,7 +171,7 @@ class TestDespachos:
             "direccion_destino": "   ",  # Solo espacios
             "peso_kg": 2.0
         })
-        assert resp.status_code == 400  # Fallará con el bug actual
+        assert resp.status_code == 400
 
     def test_crear_despacho_sin_remitente(self):
         """Despacho sin remitente debe retornar 400."""
@@ -195,6 +185,37 @@ class TestDespachos:
         assert resp.status_code == 400
 
     def test_obtener_despacho_inexistente(self):
-        """Buscar un ID que no existe debe retornar 404."""
+        """[BUG-03 corregido] Buscar un ID que no existe debe retornar 404."""
         resp = client.get("/despachos/id_falso_xyz")
         assert resp.status_code == 404
+
+
+# ─── Tests de notificaciones (BUG-04 corregido) ───────────────────────────────
+
+class TestNotificaciones:
+    def test_notificacion_despacho_inexistente(self):
+        """Notificar llegada de un ID que no existe debe retornar 404."""
+        resp = client.post("/notificaciones/llegada/id_falso_xyz")
+        assert resp.status_code == 404
+
+    def test_notificacion_servicio_caido_no_crashea(self):
+        """
+        [BUG-04 corregido] Si el servicio externo de alertas falla, el servidor
+        debe responder con un mensaje de error controlado sin cerrarse.
+        """
+        # El servicio externo (http://servicio-alertas.interno/notify) siempre
+        # falla en entorno de tests porque no existe. Con el bug corregido,
+        # el servidor captura la excepción y devuelve una respuesta controlada
+        # en lugar de crashear.
+        despachos = client.get("/despachos").json()
+        assert len(despachos) > 0, "Se necesita al menos un despacho en despachos.json"
+
+        despacho_id = despachos[0]["id"]
+        resp = client.post(f"/notificaciones/llegada/{despacho_id}")
+
+        # El servidor no debe caer: tiene que responder con algún código HTTP
+        assert resp.status_code in (200, 503)
+        data = resp.json()
+        assert "mensaje" in data
+        # El mensaje debe indicar que el servicio no está disponible
+        assert "no disponible" in data["mensaje"].lower() or "no enviada" in data["mensaje"].lower()
