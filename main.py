@@ -9,13 +9,7 @@ SPRINT 3 — Bugs corregidos:
   [BUG-03] obtenerDespacho devuelve 404 correctamente cuando el ID no existe
   [BUG-04] notificarLlegada maneja excepciones del servicio externo sin crashear
 
-SPRINT 3 — Correcciones adicionales post-revisión:
-  [FIX-05] crear_despacho ahora también valida peso_kg <= 0 (BUG-01 era parcial)
-  [FIX-06] _calcular_tarifa corrige overlap en límites de rangos (1.0, 5.0, 10.0 kg)
-  [FIX-07] DATA_DIR corregido a "Data" (case-sensitive en Linux)
-  [FIX-08] Validación de formato de email en /auth/registro y /quejas
-  [FIX-09] Orden de validaciones corregido en /auth/registro (campos vacíos primero)
-  [FIX-10] /quejas valida que descripcion y email_cliente no estén vacíos
+
 """
 
 import json
