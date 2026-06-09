@@ -3,12 +3,11 @@ main.py - Backend de Gestión de Envíos
 Materia: Testing de Aplicaciones (UADE)
 Equipo 4 - Developer: Mayra Gutierrez
 
-NOTA INTERNA PARA EL EQUIPO:
-Se han dejado los siguientes bugs intencionales para que sean detectados en testing:
-  [BUG-01] getTarifa acepta peso negativo o cero sin error (validación incompleta)
-  [BUG-02] createDespacho permite direccion_destino vacía o en blanco sin rechazar el request
-  [BUG-03] obtenerDespacho entra en bucle infinito si el ID no existe (falta el raise 404)
-  [BUG-04] notificarLlegada no tiene try/except; una caída del servicio externo crashea Uvicorn
+SPRINT 3 — Bugs corregidos:
+  [BUG-01] getTarifa ahora rechaza peso <= 0 con error 400
+  [BUG-02] createDespacho valida que direccion_destino no esté vacía
+  [BUG-03] obtenerDespacho devuelve 404 correctamente cuando el ID no existe
+  [BUG-04] notificarLlegada maneja excepciones del servicio externo sin crashear
 """
 
 import json
@@ -150,45 +149,27 @@ def listar_despachos():
 
 @app.get("/despachos/{despacho_id}", tags=["Despachos"])
 def obtener_despacho(despacho_id: str):
-    """
-    Obtiene un despacho por su ID.
-
-    [BUG-03] INTENCIONAL: si el ID no existe, el endpoint reintenta la búsqueda
-    en un bucle infinito sin condición de salida, dejando el servidor sin responder.
-    Debería lanzar un HTTPException 404, pero esa línea fue omitida intencionalmente.
-    """
+    """Obtiene un despacho por su ID."""
     logger.info(f"Buscando despacho: {despacho_id}")
-
-    # BUG-03: el bucle reintenta indefinidamente si el ID no existe
-    # La condición de corte (raise HTTPException 404) fue omitida intencionalmente.
-    # Línea correcta sería (fuera del while):
-    # raise HTTPException(status_code=404, detail="Despacho no encontrado")
-    while True:
-        despachos = leer_json(DESPACHOS_FILE)
-        for d in despachos:
-            if d["id"] == despacho_id:
-                return d
-        logger.warning(f"Despacho {despacho_id} no encontrado, reintentando...")
+    despachos = leer_json(DESPACHOS_FILE)
+    for d in despachos:
+        if d["id"] == despacho_id:
+            return d
+    logger.warning(f"Despacho {despacho_id} no encontrado")
+    raise HTTPException(status_code=404, detail="Despacho no encontrado")
 
 
 @app.post("/despachos", tags=["Despachos"])
 def crear_despacho(req: DespachoRequest):
-    """
-    Crea un nuevo despacho.
-
-    [BUG-02] INTENCIONAL: no se valida si direccion_destino está vacía o es solo espacios.
-    Debería rechazarse con un 400, pero actualmente el despacho se crea igual.
-    """
+    """Crea un nuevo despacho."""
     logger.info(f"Creando despacho de '{req.remitente}' hacia '{req.destinatario}'")
 
     # Validación de origen (correcta)
     if not req.direccion_origen.strip():
         raise HTTPException(status_code=400, detail="La dirección de origen es obligatoria")
 
-    # BUG-02: falta validar direccion_destino — se omite intencionalmente
-    # Línea correcta sería:
-    # if not req.direccion_destino.strip():
-    #     raise HTTPException(status_code=400, detail="La dirección de destino es obligatoria")
+    if not req.direccion_destino.strip():
+        raise HTTPException(status_code=400, detail="La dirección de destino es obligatoria")
 
     if not req.remitente.strip() or not req.destinatario.strip():
         raise HTTPException(status_code=400, detail="Remitente y destinatario son obligatorios")
@@ -237,18 +218,12 @@ def actualizar_estado(despacho_id: str, req: ActualizarEstadoRequest):
 
 @app.get("/getTarifa", tags=["Servicios"])
 def get_tarifa(peso_kg: float = Query(..., description="Peso del paquete en kilogramos")):
-    """
-    Calcula y devuelve la tarifa correspondiente según el peso del paquete.
-
-    [BUG-01] INTENCIONAL: se acepta peso_kg <= 0 sin lanzar error.
-    El sistema debería rechazar valores negativos o cero, pero actualmente
-    los procesa y devuelve un precio_base de la primera franja (350.0).
-    """
+    """Calcula y devuelve la tarifa correspondiente según el peso del paquete."""
     logger.info(f"Consulta de tarifa para peso: {peso_kg} kg")
 
-    # BUG-01: falta esta validación — omitida intencionalmente
-    # if peso_kg <= 0:
-    #     raise HTTPException(status_code=400, detail="El peso debe ser mayor a 0")
+    if peso_kg <= 0:
+        logger.warning(f"Peso inválido recibido: {peso_kg}")
+        raise HTTPException(status_code=400, detail="El peso debe ser mayor a 0")
 
     tarifa = _calcular_tarifa(peso_kg)
     logger.info(f"Tarifa calculada: ${tarifa} para {peso_kg} kg")
@@ -343,16 +318,7 @@ def listar_quejas():
 
 @app.post("/notificaciones/llegada/{despacho_id}", tags=["Notificaciones"])
 def notificar_llegada(despacho_id: str):
-    """
-    Genera y envía una notificación de llegada al destinatario del despacho.
-
-    [BUG-04] INTENCIONAL: la llamada al servicio externo de alertas no está
-    envuelta en un bloque try/except. Si el servicio falla o la red cae,
-    la excepción no controlada sube hasta Uvicorn y provoca el cierre total
-    del servidor.
-    Debería existir un bloque try/except que capture la excepción y devuelva
-    un mensaje de error controlado al cliente, sin detener el proceso.
-    """
+    """Genera y envía una notificación de llegada al destinatario del despacho."""
     import urllib.request
 
     logger.info(f"Enviando notificación de llegada para despacho: {despacho_id}")
@@ -367,18 +333,13 @@ def notificar_llegada(despacho_id: str):
     if not despacho:
         raise HTTPException(status_code=404, detail="Despacho no encontrado")
 
-    # BUG-04: sin try/except — si el servicio externo no responde, el servidor cae
-    # El bloque correcto sería:
-    # try:
-    #     urllib.request.urlopen("http://servicio-alertas.interno/notify", timeout=5)
-    # except Exception as e:
-    #     logger.error(f"Servicio de alertas no disponible: {e}")
-    #     return {"mensaje": "Servicio de notificaciones temporalmente no disponible"}
-
-    urllib.request.urlopen("http://servicio-alertas.interno/notify", timeout=5)
-
-    logger.info(f"Notificación enviada para despacho: {despacho_id}")
-    return {"mensaje": "Notificación enviada correctamente", "despacho_id": despacho_id}
+    try:
+        urllib.request.urlopen("http://servicio-alertas.interno/notify", timeout=5)
+        logger.info(f"Notificación enviada para despacho: {despacho_id}")
+        return {"mensaje": "Notificación enviada correctamente", "despacho_id": despacho_id}
+    except Exception as e:
+        logger.error(f"Servicio de alertas no disponible: {e}")
+        return {"mensaje": "Notificación no enviada: servicio temporalmente no disponible", "despacho_id": despacho_id}
 
 # ─── Helper privado de cálculo de tarifa ──────────────────────────────────────
 
