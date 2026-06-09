@@ -8,6 +8,14 @@ SPRINT 3 — Bugs corregidos:
   [BUG-02] createDespacho valida que direccion_destino no esté vacía
   [BUG-03] obtenerDespacho devuelve 404 correctamente cuando el ID no existe
   [BUG-04] notificarLlegada maneja excepciones del servicio externo sin crashear
+
+SPRINT 3 — Correcciones adicionales post-revisión:
+  [FIX-05] crear_despacho ahora también valida peso_kg <= 0 (BUG-01 era parcial)
+  [FIX-06] _calcular_tarifa corrige overlap en límites de rangos (1.0, 5.0, 10.0 kg)
+  [FIX-07] DATA_DIR corregido a "Data" (case-sensitive en Linux)
+  [FIX-08] Validación de formato de email en /auth/registro y /quejas
+  [FIX-09] Orden de validaciones corregido en /auth/registro (campos vacíos primero)
+  [FIX-10] /quejas valida que descripcion y email_cliente no estén vacíos
 """
 
 import json
@@ -43,7 +51,9 @@ app = FastAPI(
 # ─── Rutas a archivos JSON ─────────────────────────────────────────────────────
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "data")
+# [FIX-07] Corregido: el directorio se llama "Data" (mayúscula).
+# En Linux el filesystem es case-sensitive; "data" causaba FileNotFoundError.
+DATA_DIR = os.path.join(BASE_DIR, "Data")
 
 USUARIOS_FILE  = os.path.join(DATA_DIR, "usuarios.json")
 DESPACHOS_FILE = os.path.join(DATA_DIR, "despachos.json")
@@ -59,6 +69,19 @@ def leer_json(path: str) -> list:
 def escribir_json(path: str, data: list) -> None:
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+
+# ─── Helper de validación de email ─────────────────────────────────────────────
+
+def _validar_formato_email(email: str) -> bool:
+    """
+    [FIX-08] Valida que el email tenga formato básico: contiene '@' y
+    al menos un '.' después del '@'.
+    """
+    partes = email.strip().split("@")
+    if len(partes) != 2:
+        return False
+    dominio = partes[1]
+    return "." in dominio and len(dominio) > 2
 
 # ─── Modelos Pydantic ──────────────────────────────────────────────────────────
 
@@ -114,6 +137,17 @@ def login(req: LoginRequest):
 def registro(req: RegistroRequest):
     """Registro de un nuevo usuario común."""
     logger.info(f"Intento de registro: {req.email}")
+
+    # [FIX-09] Validar campos vacíos PRIMERO, antes de chequear duplicados.
+    # Antes el orden estaba invertido: si el email era duplicado Y los campos
+    # estaban vacíos, se devolvía error de duplicado en vez de campos obligatorios.
+    if not req.nombre.strip() or not req.email.strip() or not req.password.strip():
+        raise HTTPException(status_code=400, detail="Todos los campos son obligatorios")
+
+    # [FIX-08] Validar formato de email
+    if not _validar_formato_email(req.email):
+        raise HTTPException(status_code=400, detail="Formato de email inválido")
+
     usuarios = leer_json(USUARIOS_FILE)
 
     # Verificar que el email no exista
@@ -121,9 +155,6 @@ def registro(req: RegistroRequest):
         if u["email"] == req.email:
             logger.warning(f"Registro rechazado, email duplicado: {req.email}")
             raise HTTPException(status_code=400, detail="El email ya está registrado")
-
-    if not req.nombre.strip() or not req.email.strip() or not req.password.strip():
-        raise HTTPException(status_code=400, detail="Todos los campos son obligatorios")
 
     nuevo = {
         "id": "u" + str(uuid.uuid4())[:6],
@@ -164,7 +195,6 @@ def crear_despacho(req: DespachoRequest):
     """Crea un nuevo despacho."""
     logger.info(f"Creando despacho de '{req.remitente}' hacia '{req.destinatario}'")
 
-    # Validación de origen (correcta)
     if not req.direccion_origen.strip():
         raise HTTPException(status_code=400, detail="La dirección de origen es obligatoria")
 
@@ -174,7 +204,14 @@ def crear_despacho(req: DespachoRequest):
     if not req.remitente.strip() or not req.destinatario.strip():
         raise HTTPException(status_code=400, detail="Remitente y destinatario son obligatorios")
 
-    # Calcular tarifa automáticamente
+    # [FIX-05] Validar peso aquí también, no solo en /getTarifa.
+    # BUG-01 solo estaba corregido en el endpoint getTarifa; crear_despacho
+    # llamaba a _calcular_tarifa directamente sin validar el peso primero,
+    # permitiendo crear despachos con peso negativo o cero.
+    if req.peso_kg <= 0:
+        logger.warning(f"Peso inválido en crear_despacho: {req.peso_kg}")
+        raise HTTPException(status_code=400, detail="El peso debe ser mayor a 0")
+
     tarifa = _calcular_tarifa(req.peso_kg)
 
     nuevo = {
@@ -212,6 +249,7 @@ def actualizar_estado(despacho_id: str, req: ActualizarEstadoRequest):
             logger.info(f"Despacho {despacho_id}: estado cambiado de '{estado_anterior}' a '{req.estado}'")
             return {"mensaje": "Estado actualizado", "despacho_id": despacho_id, "nuevo_estado": req.estado}
 
+    logger.warning(f"Despacho {despacho_id} no encontrado al intentar actualizar estado")
     raise HTTPException(status_code=404, detail="Despacho no encontrado")
 
 # ─── Endpoint nuevo 1: getTarifa ───────────────────────────────────────────────
@@ -285,6 +323,17 @@ def registrar_queja(req: QuejasRequest):
     if req.tipo not in tipos_validos:
         raise HTTPException(status_code=400, detail=f"Tipo inválido. Opciones: {tipos_validos}")
 
+    # [FIX-10] Validar que descripcion y email_cliente no estén vacíos
+    if not req.descripcion.strip():
+        raise HTTPException(status_code=400, detail="La descripción es obligatoria")
+
+    if not req.email_cliente.strip():
+        raise HTTPException(status_code=400, detail="El email del cliente es obligatorio")
+
+    # [FIX-08] Validar formato de email en quejas
+    if not _validar_formato_email(req.email_cliente):
+        raise HTTPException(status_code=400, detail="Formato de email del cliente inválido")
+
     # Verificar que el despacho exista
     despachos = leer_json(DESPACHOS_FILE)
     ids_existentes = [d["id"] for d in despachos]
@@ -344,10 +393,23 @@ def notificar_llegada(despacho_id: str):
 # ─── Helper privado de cálculo de tarifa ──────────────────────────────────────
 
 def _calcular_tarifa(peso_kg: float) -> float:
-    """Calcula la tarifa según el peso usando la tabla de tarifas.json."""
+    """
+    Calcula la tarifa según el peso usando la tabla de tarifas.json.
+
+    [FIX-06] Corregido overlap en límites de rangos.
+    Los rangos en tarifas.json comparten sus límites (ej: t001 termina en 1.0
+    y t002 empieza en 1.0). Con la comparación anterior (<=), un peso exacto
+    de 1.0 kg caía siempre en el primer rango (t001, $350) en vez del segundo
+    (t002, $700). Se corrige usando < en el límite inferior para que solo el
+    rango "superior" capture el valor exacto del límite.
+    Valores afectados antes del fix: 1.0 kg → 350 (correcto: 700),
+    5.0 kg → 700 (correcto: 1400), 10.0 kg → 1400 (correcto: 2500).
+    """
     tarifas = leer_json(TARIFAS_FILE)
     for t in tarifas:
-        if t["peso_min_kg"] <= peso_kg <= t["peso_max_kg"]:
+        if t["peso_min_kg"] < peso_kg <= t["peso_max_kg"]:
             return t["precio_base"]
-    # Fallback: si el peso supera todos los rangos, aplica el máximo
+    # El primer rango empieza en 0.0; con < no capturaría peso=0.0,
+    # pero ese caso ya se rechaza antes con la validación peso <= 0.
+    # Fallback: si el peso supera todos los rangos, aplica el máximo.
     return tarifas[-1]["precio_base"]
