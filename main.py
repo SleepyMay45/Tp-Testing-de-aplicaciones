@@ -12,6 +12,7 @@ SPRINT 3 — Bugs corregidos:
 
 """
 
+
 import json
 import logging
 import os
@@ -19,7 +20,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi.client import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 
 # ─── Logging ───────────────────────────────────────────────────────────────────
