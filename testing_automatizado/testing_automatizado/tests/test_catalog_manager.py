@@ -31,7 +31,6 @@ def test_get_products_happy_path(mock_get):
 @patch('catalog_manager.CatalogManager.get_products')
 def test_filter_by_brand_logic(mock_get):
     # Definimos una respuesta falsa (Mock)
-    mock_get.return_value.status_code = 200
     mock_get.return_value = [
         {"id": 1, "name": "Remera A", "brand": "Polo"},
         {"id": 2, "name": "Remera B", "brand": "H&M"},
