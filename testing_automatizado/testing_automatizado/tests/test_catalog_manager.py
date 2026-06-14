@@ -2,6 +2,54 @@ import pytest
 from unittest.mock import patch
 from catalog_manager import CatalogManager
 
+import pytest
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
+@pytest.fixture
+def navegador():
+    # Inicialización del WebDriver
+    driver = webdriver.Chrome()
+    # Entregamos el driver a la prueba
+    yield driver
+    # Cierre automático al finalizar
+    driver.quit()
+
+def test_crear_despacho_completo(navegador):
+    wait = WebDriverWait(navegador, 10)
+    navegador.get("http://localhost:8000")
+
+    # Ingreso de Dirección
+    direccion = wait.until(
+        EC.presence_of_element_located((By.ID, "direccion_destino"))
+    )
+    direccion.send_keys("Av. Corrientes 1234")
+
+    # Ingreso de Peso
+    peso = navegador.find_element(By.ID, "peso_kg")
+    peso.send_keys("5")
+
+    # Acción: Calcular tarifa
+    navegador.find_element(By.ID, "btn-calcular").click()
+
+    # Validación de cálculo
+    tarifa = wait.until(
+        EC.visibility_of_element_located((By.ID, "tarifa"))
+    )
+    assert tarifa.text != "", "La tarifa no se calculó correctamente en la UI"
+
+    # Acción: Confirmar despacho
+    navegador.find_element(By.ID, "btn-despachar").click()
+
+    # Validación final del flujo
+    mensaje = wait.until(
+        EC.visibility_of_element_located((By.ID, "mensaje_exito"))
+    )
+    assert "despacho creado" in mensaje.text.lower(), "El mensaje de éxito no apareció"
+
+
 # --- ESCENARIO 1: TEST DE INTEGRACIÓN (Sin Mocks) ---
 def test_get_products_integration():
     manager = CatalogManager()
