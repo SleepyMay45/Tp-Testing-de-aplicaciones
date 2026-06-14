@@ -20,7 +20,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from fastapi.client import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 
 # ─── Logging ───────────────────────────────────────────────────────────────────
@@ -42,6 +42,13 @@ app = FastAPI(
     description="Sistema de gestión de envíos - UADE Testing de Aplicaciones - Equipo 4",
     version="1.0.0"
 )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 
 # ─── Rutas a archivos JSON ─────────────────────────────────────────────────────
 
