@@ -8,10 +8,8 @@ SPRINT 3 — Bugs corregidos:
   [BUG-02] createDespacho valida que direccion_destino no esté vacía
   [BUG-03] obtenerDespacho devuelve 404 correctamente cuando el ID no existe
   [BUG-04] notificarLlegada maneja excepciones del servicio externo sin crashear
-
-
+  [BUG-06] _calcular_tarifa corrige el solapamiento en los límites de los rangos
 """
-
 
 import json
 import logging
@@ -143,8 +141,6 @@ def registro(req: RegistroRequest):
     logger.info(f"Intento de registro: {req.email}")
 
     # [FIX-09] Validar campos vacíos PRIMERO, antes de chequear duplicados.
-    # Antes el orden estaba invertido: si el email era duplicado Y los campos
-    # estaban vacíos, se devolvía error de duplicado en vez de campos obligatorios.
     if not req.nombre.strip() or not req.email.strip() or not req.password.strip():
         raise HTTPException(status_code=400, detail="Todos los campos son obligatorios")
 
@@ -208,10 +204,7 @@ def crear_despacho(req: DespachoRequest):
     if not req.remitente.strip() or not req.destinatario.strip():
         raise HTTPException(status_code=400, detail="Remitente y destinatario son obligatorios")
 
-    # [FIX-05] Validar peso aquí también, no solo en /getTarifa.
-    # BUG-01 solo estaba corregido en el endpoint getTarifa; crear_despacho
-    # llamaba a _calcular_tarifa directamente sin validar el peso primero,
-    # permitiendo crear despachos con peso negativo o cero.
+    # [FIX-05] Validar peso
     if req.peso_kg <= 0:
         logger.warning(f"Peso inválido en crear_despacho: {req.peso_kg}")
         raise HTTPException(status_code=400, detail="El peso debe ser mayor a 0")
@@ -400,20 +393,12 @@ def _calcular_tarifa(peso_kg: float) -> float:
     """
     Calcula la tarifa según el peso usando la tabla de tarifas.json.
 
-    [FIX-06] Corregido overlap en límites de rangos.
-    Los rangos en tarifas.json comparten sus límites (ej: t001 termina en 1.0
-    y t002 empieza en 1.0). Con la comparación anterior (<=), un peso exacto
-    de 1.0 kg caía siempre en el primer rango (t001, $350) en vez del segundo
-    (t002, $700). Se corrige usando < en el límite inferior para que solo el
-    rango "superior" capture el valor exacto del límite.
-    Valores afectados antes del fix: 1.0 kg → 350 (correcto: 700),
-    5.0 kg → 700 (correcto: 1400), 10.0 kg → 1400 (correcto: 2500).
+    [FIX-06] Corregido overlap en límites de rangos usando '<' para límite inferior.
     """
     tarifas = leer_json(TARIFAS_FILE)
     for t in tarifas:
         if t["peso_min_kg"] < peso_kg <= t["peso_max_kg"]:
             return t["precio_base"]
-    # El primer rango empieza en 0.0; con < no capturaría peso=0.0,
-    # pero ese caso ya se rechaza antes con la validación peso <= 0.
+            
     # Fallback: si el peso supera todos los rangos, aplica el máximo.
     return tarifas[-1]["precio_base"]
