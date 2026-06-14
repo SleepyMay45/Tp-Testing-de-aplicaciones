@@ -392,12 +392,11 @@ def notificar_llegada(despacho_id: str):
 def _calcular_tarifa(peso_kg: float) -> float:
     """
     Calcula la tarifa según el peso usando la tabla de tarifas.json.
-
-    [FIX-06] Corregido overlap en límites de rangos usando '<' para límite inferior.
     """
     tarifas = leer_json(TARIFAS_FILE)
     for t in tarifas:
-        if t["peso_min_kg"] < peso_kg <= t["peso_max_kg"]:
+        # CORRECCIÓN DEFINITIVA: <= a la izquierda, < a la derecha
+        if t["peso_min_kg"] <= peso_kg < t["peso_max_kg"]:
             return t["precio_base"]
             
     # Fallback: si el peso supera todos los rangos, aplica el máximo.
