@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Simulador de Envíos</title>
+</head>
+<body>
+    <h2>Interfaz de Pruebas</h2>
+    
+    <input type="text" id="direccion_destino" placeholder="Dirección de Destino">
+    <input type="number" id="peso_kg" placeholder="Peso (kg)">
+    <button id="btn-calcular">Calcular Tarifa</button>
+    
+    <p>Tarifa calculada: $<span id="tarifa"></span></p>
+    
+    <button id="btn-despachar">Confirmar Despacho</button>
+    <p id="mensaje_exito" style="color: green; font-weight: bold;"></p>
+
+    <script>
+        // Conexión lógica con tu servidor FastAPI
+        document.getElementById('btn-calcular').onclick = async () => {
+            const peso = document.getElementById('peso_kg').value;
+            const res = await fetch(`http://localhost:8000/getTarifa?peso_kg=${peso}`);
+            const data = await res.json();
+            document.getElementById('tarifa').innerText = data.tarifa;
+        };
+
+        document.getElementById('btn-despachar').onclick = async () => {
+            const dir = document.getElementById('direccion_destino').value;
+            const peso = document.getElementById('peso_kg').value;
+            const res = await fetch('http://localhost:8000/despachos', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    remitente: "Testing E2E",
+                    destinatario: "Cliente Final",
+                    direccion_origen: "Sucursal Central",
+                    direccion_destino: dir,
+                    peso_kg: parseFloat(peso)
+                })
+            });
+            if(res.ok) {
+                document.getElementById('mensaje_exito').innerText = "¡Despacho creado exitosamente!";
+            }
+        };
+    </script>
+</body>
+</html>

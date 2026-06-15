@@ -1,16 +1,17 @@
+import os
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 def test_crear_despacho_completo():
-    print("Levantando el navegador Chrome...")
     driver = webdriver.Chrome()
     wait = WebDriverWait(driver, 10)
 
     try:
-        # 1. Navegar a la página
-        driver.get("http://localhost:8000")
+        # 1. Navegar exclusivamente al archivo HTML local (Frontend simulado)
+        ruta_html = "file:///" + os.path.abspath("index.html").replace("\\", "/")
+        driver.get(ruta_html)
         print("Página cargada. Ingresando datos...")
 
         # 2. Dirección
@@ -30,7 +31,7 @@ def test_crear_despacho_completo():
             EC.visibility_of_element_located((By.ID, "tarifa"))
         )
         assert tarifa.text != "", "Error: La tarifa está vacía"
-        print(f"Éxito: Tarifa calculada correctamente ({tarifa.text}).")
+        print(f"Éxito: Tarifa calculada correctamente (${tarifa.text}).")
 
         # 5. Confirmar despacho
         driver.find_element(By.ID, "btn-despachar").click()
@@ -48,7 +49,6 @@ def test_crear_despacho_completo():
         print("Cerrando el navegador...")
         driver.quit()
 
-# ESTO ES LO QUE FALTABA PARA QUE EL SCRIPT SE EJECUTE SOLO
 if __name__ == "__main__":
     print("=== INICIANDO AUTOMATIZACIÓN E2E CON SELENIUM ===")
     test_crear_despacho_completo()
