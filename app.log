@@ -1,2 +1,6 @@
 2026-05-14 18:09:30,441 [INFO] Intento de login para: string
 2026-05-14 18:09:30,441 [WARNING] Login fallido para: string
+2026-06-14 23:09:46,260 [INFO] Consulta de tarifa para peso: 5.0 kg
+2026-06-14 23:09:46,260 [INFO] Tarifa calculada: $1400.0 para 5.0 kg
+2026-06-14 23:09:46,603 [INFO] Creando despacho de 'Testing E2E' hacia 'Cliente Final'
+2026-06-14 23:09:46,603 [INFO] Despacho creado: dcfd762 | Tarifa calculada: $1400.0

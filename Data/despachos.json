@@ -22,5 +22,17 @@
     "fecha_creacion": "2026-05-12T14:30:00",
     "tarifa": 2500.0,
     "notas": ""
+  },
+  {
+    "id": "dcfd762",
+    "remitente": "Testing E2E",
+    "destinatario": "Cliente Final",
+    "direccion_origen": "Sucursal Central",
+    "direccion_destino": "Av. Corrientes 1234",
+    "peso_kg": 5.0,
+    "estado": "pendiente",
+    "fecha_creacion": "2026-06-14T23:09:46.603287",
+    "tarifa": 1400.0,
+    "notas": ""
   }
 ]
